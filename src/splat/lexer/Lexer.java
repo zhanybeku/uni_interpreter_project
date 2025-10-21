@@ -106,7 +106,6 @@ public class Lexer {
               }
             }
 
-            // Remove extra increment:
             i--;
           }
 
