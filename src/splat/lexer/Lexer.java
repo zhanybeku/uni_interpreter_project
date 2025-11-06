@@ -83,8 +83,21 @@ public class Lexer {
                     if (i + 2 < line.length()) {
                       char thirdCh = line.charAt(i + 2);
                       if (isInvalidThreeCharSequence(ch, nextCh, thirdCh)) {
-                        throw new LexException("Invalid operator sequence: " + ch + nextCh + thirdCh, lineNumber,
-                            columnNumber);
+                        if (ch == '<' && nextCh == '=' && thirdCh == '=') {
+                          if (i + 3 < line.length() && line.charAt(i + 3) == '=') {
+                            currentString.append(ch);
+                            currentString.append(nextCh);
+                            i += 2;
+                            columnNumber += 2;
+                            break;
+                          } else {
+                            throw new LexException("Invalid operator sequence: " + ch + nextCh + thirdCh, lineNumber,
+                                columnNumber);
+                          }
+                        } else {
+                          throw new LexException("Invalid operator sequence: " + ch + nextCh + thirdCh, lineNumber,
+                              columnNumber);
+                        }
                       }
                     }
                     currentString.append(ch);

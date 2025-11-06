@@ -4,17 +4,24 @@ import splat.lexer.Token;
 
 public class VariableDecl extends Declaration {
 
-	// Need to add some fields
+	private String label;
+	private String type;
 	
-	// Need to add extra arguments for setting fields in the constructor 
-	public VariableDecl(Token tok) {
+	public VariableDecl(String label, String type, Token tok) {
 		super(tok);
+		this.label = label;
+		this.type = type;
 	}
 
-	// Getters?
+	public String getLabel() {
+		return label;
+	}
 	
-	// Fix this as well
+	public String getType() {
+		return type;
+	}
+	
 	public String toString() {
-		return null;
+		return label + " : " + type + " ;";
 	}
 }
