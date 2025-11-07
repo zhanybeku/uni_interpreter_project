@@ -9,7 +9,7 @@ public class  SplatTester {
 	private final boolean verbose = true;
 
 	// Path to where the directory of .splat test files are located
-	private final String testDirName = "./tests";
+	private final String testDirName = ".\\tests";
 
 	private File testDir;
 

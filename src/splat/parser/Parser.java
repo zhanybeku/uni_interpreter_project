@@ -71,7 +71,8 @@ public class Parser {
 			value.equals("while") || value.equals("do") || value.equals("print") ||
 			value.equals("print_line") || value.equals("return") || value.equals("is") ||
 			value.equals("void") || value.equals("Integer") || value.equals("Boolean") ||
-			value.equals("String") || value.equals("true") || value.equals("false")) {
+			value.equals("String") || value.equals("true") || value.equals("false") ||
+			value.equals("and") || value.equals("or") || value.equals("not")) {
 			throw new ParseException("Expected identifier, got keyword '" + value + "'.", tok);
 		}
 		return value;
@@ -95,16 +96,10 @@ public class Parser {
 			
 			List<Statement> stmts = parseStmts();
 			
-			if (peekNext("end;")) {
-				checkNext("end;");
-			} else {
-				checkNext("end");
-				if (peekNext(";")) {
-					checkNext(";");
-				}
-			}
-	
-			return new ProgramAST(decls, stmts, startTok);
+		checkNext("end");
+		checkNext(";");
+
+		return new ProgramAST(decls, stmts, startTok);
 			
 		// This might happen if we do a tokens.get(), and nothing is there!
 		} catch (IndexOutOfBoundsException ex) {
@@ -158,14 +153,8 @@ public class Parser {
 		List<VariableDecl> locVarDecls = parseLocVarDecls();
 		checkNext("begin");
 		List<Statement> stmts = parseStmts();
-		if (peekNext("end;")) {
-			checkNext("end;");
-		} else {
-			checkNext("end");
-			if (peekNext(";")) {
-				checkNext(";");
-			}
-		}
+		checkNext("end");
+		checkNext(";");
 		return new FunctionDecl(label, params, retType, locVarDecls, stmts, startTok);
 	}
 	
@@ -223,13 +212,7 @@ public class Parser {
 	 */
 	private List<Statement> parseStmts() throws ParseException {
 		List<Statement> stmts = new ArrayList<Statement>();
-		while (hasTokens() && !peekNext("end") && !peekNext("end;") && !peekNext("else")) {
-			if (peekNext("end") && tokens.size() > 1) {
-				String next = tokens.get(1).getValue();
-				if (next.equals("if") || next.equals("while")) {
-					break;
-				}
-			}
+		while (hasTokens() && !peekNext("end") && !peekNext("else")) {
 			stmts.add(parseStmt());
 		}
 		return stmts;
@@ -253,19 +236,9 @@ public class Parser {
 			return new PrintLine(startTok);
 		} else if (first.equals("print")) {
 			checkNext("print");
-			if (peekNext("_line") || peekNext("line")) {
-				if (peekNext("_line")) {
-					checkNext("_line");
-				} else {
-					checkNext("line");
-				}
-				checkNext(";");
-				return new PrintLine(startTok);
-			} else {
-				Expression expr = parseExpression();
-				checkNext(";");
-				return new Print(expr, startTok);
-			}
+			Expression expr = parseExpression();
+			checkNext(";");
+			return new Print(expr, startTok);
 		} else if (first.equals("return")) {
 			checkNext("return");
 			if (peekNext(";")) {
@@ -296,40 +269,27 @@ public class Parser {
 	}
 	
 	/*
-	 * <while-loop> ::= while ( <expr> ) do <stmts> end while ;
+	 * <while-loop> ::= while <expr> do <stmts> end while ;
 	 */
 	private WhileLoop parseWhileLoop() throws ParseException {
 		Token startTok = tokens.get(0);
 		checkNext("while");
-		checkNext("(");
 		Expression condition = parseExpression();
-		checkNext(")");
 		checkNext("do");
 		List<Statement> stmts = parseStmts();
 		checkNext("end");
 		checkNext("while");
-		if (peekNext(";")) {
-			checkNext(";");
-		}
+		checkNext(";");
 		return new WhileLoop(condition, stmts, startTok);
 	}
 	
 	/*
-	 * <if-then> ::= if ( <expr> ) then <stmts> [ else <stmts> ] end if ;
+	 * <if-then> ::= if <expr> then <stmts> [ else <stmts> ] end if ;
 	 */
 	private IfThen parseIfThen() throws ParseException {
 		Token startTok = tokens.get(0);
 		checkNext("if");
-		
-		Expression condition;
-		if (peekNext("(")) {
-			checkNext("(");
-			condition = parseExpression();
-			checkNext(")");
-		} else {
-			condition = parseExpression();
-		}
-		
+		Expression condition = parseExpression();
 		checkNext("then");
 		List<Statement> thenStmts = parseStmts();
 		List<Statement> elseStmts = null;
@@ -341,9 +301,7 @@ public class Parser {
 		
 		checkNext("end");
 		checkNext("if");
-		if (peekNext(";")) {
-			checkNext(";");
-		}
+		checkNext(";");
 		return new IfThen(condition, thenStmts, elseStmts, startTok);
 	}
 	
@@ -363,107 +321,67 @@ public class Parser {
 	}
 	
 	/*
-	 * Expression parsing with operator precedence
-	 * <expr> ::= <or-expr>
-	 * <or-expr> ::= <and-expr> ( || <and-expr> )*
-	 * <and-expr> ::= <rel-expr> ( && <rel-expr> )*
-	 * <rel-expr> ::= <add-expr> ( <rel-op> <add-expr> )?
-	 * <add-expr> ::= <mult-expr> ( <add-op> <mult-expr> )*
-	 * <mult-expr> ::= <unary-expr> ( <mult-op> <unary-expr> )*
-	 * <unary-expr> ::= <unary-op> <unary-expr> | <primary-expr>
-	 * <primary-expr> ::= <literal> | <variable> | <function-call> | ( <expr> )
+	 * <expr> ::= ( <expr> <bin-op> <expr> )
+	 * | ( <unary-op> <expr> )
+	 * | <label> ( <args> )
+	 * | <label>
+	 * | <literal>
+	 * <bin-op> ::= and | or | > | < | == | >= | <= | + | - | * | / | %
+	 * <unary-op> ::= not | -
 	 */
 	private Expression parseExpression() throws ParseException {
-		return parseOrExpr();
-	}
-	
-	private Expression parseOrExpr() throws ParseException {
-		Expression left = parseAndExpr();
-		while (peekNext("||")) {
-			Token opTok = tokens.remove(0);
-			Expression right = parseAndExpr();
-			left = new BinaryOp(left, "||", right, opTok);
-		}
-		return left;
-	}
-	
-	private Expression parseAndExpr() throws ParseException {
-		Expression left = parseRelExpr();
-		while (peekNext("&&")) {
-			Token opTok = tokens.remove(0);
-			Expression right = parseRelExpr();
-			left = new BinaryOp(left, "&&", right, opTok);
-		}
-		return left;
-	}
-	
-	private Expression parseRelExpr() throws ParseException {
-		Expression left = parseAddExpr();
-		if (peekNext("==") || peekNext("!=") || peekNext("<") || 
-			peekNext(">") || peekNext("<=") || peekNext(">=")) {
-			Token opTok = tokens.remove(0);
-			String op = opTok.getValue();
-			Expression right = parseAddExpr();
-			return new BinaryOp(left, op, right, opTok);
-		}
-		return left;
-	}
-	
-	private Expression parseAddExpr() throws ParseException {
-		Expression left = parseMultExpr();
-		while (peekNext("+") || peekNext("-")) {
-			Token opTok = tokens.remove(0);
-			String op = opTok.getValue();
-			Expression right = parseMultExpr();
-			left = new BinaryOp(left, op, right, opTok);
-		}
-		return left;
-	}
-	
-	private Expression parseMultExpr() throws ParseException {
-		Expression left = parseUnaryExpr();
-		while (peekNext("*") || peekNext("/") || peekNext("%")) {
-			Token opTok = tokens.remove(0);
-			String op = opTok.getValue();
-			Expression right = parseUnaryExpr();
-			left = new BinaryOp(left, op, right, opTok);
-		}
-		return left;
-	}
-	
-	private Expression parseUnaryExpr() throws ParseException {
-		if (peekNext("-") || peekNext("!")) {
-			Token opTok = tokens.remove(0);
-			String op = opTok.getValue();
-			Expression expr = parseUnaryExpr();
-			return new UnaryOp(op, expr, opTok);
-		}
-		return parsePrimaryExpr();
-	}
-	
-	private Expression parsePrimaryExpr() throws ParseException {
 		Token startTok = tokens.get(0);
 		String value = startTok.getValue();
 		
 		if (value.equals("(")) {
 			checkNext("(");
-			Expression expr = parseExpression();
-			checkNext(")");
-			return expr;
-		} else if (value.equals("true") || value.equals("false") || 
-				   value.startsWith("\"") || isNumeric(value)) {
+			
+			if (peekNext("not") || peekNext("-")) {
+				Token opTok = tokens.remove(0);
+				String op = opTok.getValue();
+				Expression expr = parseExpression();
+				checkNext(")");
+				return new UnaryOp(op, expr, opTok);
+			}
+			else {
+				Expression left = parseExpression();
+				
+				Token opTok = tokens.remove(0);
+				String op = opTok.getValue();
+				
+				if (!isBinaryOp(op)) {
+					throw new ParseException("Expected binary operator, got '" + op + "'.", opTok);
+				}
+				
+				Expression right = parseExpression();
+				checkNext(")");
+				return new BinaryOp(left, op, right, opTok);
+			}
+		}
+		else if (value.equals("true") || value.equals("false") || 
+				 value.startsWith("\"") || isNumeric(value)) {
 			tokens.remove(0);
 			return new Literal(value, startTok);
-		} else if (peekTwoAhead("(")) {
+		}
+		else if (peekTwoAhead("(")) {
 			String label = getLabel();
 			checkNext("(");
 			List<Expression> args = parseArgs();
 			checkNext(")");
 			return new FunctionCallExpr(label, args, startTok);
-		} else {
+		}
+		else {
 			String label = getLabel();
 			return new Variable(label, startTok);
 		}
+	}
+	
+	private boolean isBinaryOp(String op) {
+		return op.equals("and") || op.equals("or") || 
+			   op.equals(">") || op.equals("<") || op.equals("==") || 
+			   op.equals(">=") || op.equals("<=") || 
+			   op.equals("+") || op.equals("-") || op.equals("*") || 
+			   op.equals("/") || op.equals("%");
 	}
 	
 	private boolean isNumeric(String str) {

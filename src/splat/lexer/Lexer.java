@@ -69,43 +69,48 @@ public class Lexer {
 
               String tokenValue = currentString.toString();
               tokens.add(new Token(tokenValue, lineNumber, startColumn));
+              i--;
             } else {
-              while (i < line.length() && !Character.isWhitespace(line.charAt(i)) && line.charAt(i) != '"') {
-                char ch = line.charAt(i);
-
-                if (!isValidCharacter(ch)) {
-                  throw new LexException("Invalid character: " + ch, lineNumber, columnNumber);
-                }
-
+              if (isOperatorOrDelimiter(currentChar)) {
                 if (i + 1 < line.length()) {
                   char nextCh = line.charAt(i + 1);
-                  if (isMultiCharOperator(ch, nextCh)) {
+                  if (isMultiCharOperator(currentChar, nextCh)) {
                     if (i + 2 < line.length()) {
                       char thirdCh = line.charAt(i + 2);
-                      if (isInvalidThreeCharSequence(ch, nextCh, thirdCh)) {
-                        if (ch == '<' && nextCh == '=' && thirdCh == '=') {
+                      if (isInvalidThreeCharSequence(currentChar, nextCh, thirdCh)) {
+                        if (currentChar == '<' && nextCh == '=' && thirdCh == '=') {
                           if (i + 3 < line.length() && line.charAt(i + 3) == '=') {
-                            currentString.append(ch);
-                            currentString.append(nextCh);
-                            i += 2;
+                            tokens.add(new Token(String.valueOf(currentChar) + nextCh, lineNumber, columnNumber));
+                            i += 1;
                             columnNumber += 2;
-                            break;
+                            continue;
                           } else {
-                            throw new LexException("Invalid operator sequence: " + ch + nextCh + thirdCh, lineNumber,
+                            throw new LexException("Invalid operator sequence: " + currentChar + nextCh + thirdCh, lineNumber,
                                 columnNumber);
                           }
                         } else {
-                          throw new LexException("Invalid operator sequence: " + ch + nextCh + thirdCh, lineNumber,
+                          throw new LexException("Invalid operator sequence: " + currentChar + nextCh + thirdCh, lineNumber,
                               columnNumber);
                         }
                       }
                     }
-                    currentString.append(ch);
-                    currentString.append(nextCh);
-                    i += 2;
+                    tokens.add(new Token(String.valueOf(currentChar) + nextCh, lineNumber, columnNumber));
+                    i += 1;
                     columnNumber += 2;
-                    break;
+                    continue;
                   }
+                }
+                tokens.add(new Token(String.valueOf(currentChar), lineNumber, columnNumber));
+                columnNumber++;
+                continue;
+              }
+
+              while (i < line.length() && !Character.isWhitespace(line.charAt(i)) && 
+                     line.charAt(i) != '"' && !isOperatorOrDelimiter(line.charAt(i))) {
+                char ch = line.charAt(i);
+
+                if (!isValidCharacter(ch)) {
+                  throw new LexException("Invalid character: " + ch, lineNumber, columnNumber);
                 }
 
                 currentString.append(ch);
@@ -117,9 +122,10 @@ public class Lexer {
               if (!tokenValue.isEmpty()) {
                 tokens.add(new Token(tokenValue, lineNumber, startColumn));
               }
+              
+              i--;
             }
 
-            i--;
           }
 
         }
@@ -136,25 +142,27 @@ public class Lexer {
   }
 
   private boolean isValidCharacter(char ch) {
-    return Character.isLetterOrDigit(ch) ||
-        ch == '_' ||
-        ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '%' ||
-        ch == '=' || ch == '<' || ch == '>' ||
-        ch == '(' || ch == ')' ||
-        ch == ';' || ch == ',' || ch == ':' ||
-        ch == '"';
+    return Character.isLetterOrDigit(ch) || ch == '_';
   }
 
   private boolean isMultiCharOperator(char first, char second) {
-    return (first == '=' && second == '=') || // ==
-        (first == '<' && second == '=') || // <=
-        (first == '>' && second == '='); // >=
+    return (first == '=' && second == '=') ||
+        (first == '<' && second == '=') ||
+        (first == '>' && second == '=') ||
+        (first == ':' && second == '=');
   }
 
   private boolean isInvalidThreeCharSequence(char first, char second, char third) {
     return (first == '<' && second == '=' && third == '=') ||
         (first == '>' && second == '=' && third == '=') ||
         (first == '=' && second == '=' && third == '=');
+  }
+
+  private boolean isOperatorOrDelimiter(char ch) {
+    return ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '%' ||
+           ch == '=' || ch == '<' || ch == '>' ||
+           ch == '(' || ch == ')' ||
+           ch == ';' || ch == ',' || ch == ':';
   }
 
 }
