@@ -59,10 +59,6 @@ public class Parser {
 		return tokens.get(1).getValue().equals(expected);
 	}
 	
-	private boolean hasTokens() {
-		return !tokens.isEmpty();
-	}
-	
 	private String getLabel() throws ParseException {
 		Token tok = tokens.remove(0);
 		String value = tok.getValue();
@@ -148,7 +144,8 @@ public class Parser {
 		List<VariableDecl> params = parseParams();
 		checkNext(")");
 		checkNext(":");
-		String retType = tokens.remove(0).getValue();
+		String retTypeName = tokens.remove(0).getValue();
+		Type retType = new Type(retTypeName);
 		checkNext("is");
 		List<VariableDecl> locVarDecls = parseLocVarDecls();
 		checkNext("begin");
@@ -180,7 +177,8 @@ public class Parser {
 		Token startTok = tokens.get(0);
 		String label = getLabel();
 		checkNext(":");
-		String type = tokens.remove(0).getValue();
+		String typeName = tokens.remove(0).getValue();
+		Type type = new Type(typeName);
 		return new VariableDecl(label, type, startTok);
 	}
 	
@@ -202,7 +200,8 @@ public class Parser {
 		Token startTok = tokens.get(0);
 		String label = getLabel();
 		checkNext(":");
-		String type = tokens.remove(0).getValue();
+		String typeName = tokens.remove(0).getValue();
+		Type type = new Type(typeName);
 		checkNext(";");
 		return new VariableDecl(label, type, startTok);
 	}
@@ -212,7 +211,7 @@ public class Parser {
 	 */
 	private List<Statement> parseStmts() throws ParseException {
 		List<Statement> stmts = new ArrayList<Statement>();
-		while (hasTokens() && !peekNext("end") && !peekNext("else")) {
+		while (!tokens.isEmpty() && !peekNext("end") && !peekNext("else")) {
 			stmts.add(parseStmt());
 		}
 		return stmts;
@@ -342,8 +341,7 @@ public class Parser {
 				Expression expr = parseExpression();
 				checkNext(")");
 				return new UnaryOp(op, expr, opTok);
-			}
-			else {
+			} else {
 				Expression left = parseExpression();
 				
 				Token opTok = tokens.remove(0);

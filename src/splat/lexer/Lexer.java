@@ -45,17 +45,12 @@ public class Lexer {
               while (i < line.length()) {
                 char nextChar = line.charAt(i);
 
-                if (nextChar == '"' || nextChar == '\\' || nextChar == '\n' || nextChar == '\r') {
-                  if (nextChar == '"') {
-                    currentString.append(nextChar);
-                    foundClosingQuote = true;
-                    i++;
-                    columnNumber++;
-                    break;
-                  } else {
-                    throw new LexException("Invalid character in string literal: " + nextChar, lineNumber,
-                        columnNumber);
-                  }
+                if (nextChar == '"') {
+                  currentString.append(nextChar);
+                  foundClosingQuote = true;
+                  i++;
+                  columnNumber++;
+                  break;
                 }
 
                 currentString.append(nextChar);
@@ -85,11 +80,13 @@ public class Lexer {
                             columnNumber += 2;
                             continue;
                           } else {
-                            throw new LexException("Invalid operator sequence: " + currentChar + nextCh + thirdCh, lineNumber,
+                            throw new LexException("Invalid operator sequence: " + currentChar + nextCh + thirdCh,
+                                lineNumber,
                                 columnNumber);
                           }
                         } else {
-                          throw new LexException("Invalid operator sequence: " + currentChar + nextCh + thirdCh, lineNumber,
+                          throw new LexException("Invalid operator sequence: " + currentChar + nextCh + thirdCh,
+                              lineNumber,
                               columnNumber);
                         }
                       }
@@ -105,8 +102,8 @@ public class Lexer {
                 continue;
               }
 
-              while (i < line.length() && !Character.isWhitespace(line.charAt(i)) && 
-                     line.charAt(i) != '"' && !isOperatorOrDelimiter(line.charAt(i))) {
+              while (i < line.length() && !Character.isWhitespace(line.charAt(i)) &&
+                  line.charAt(i) != '"' && !isOperatorOrDelimiter(line.charAt(i))) {
                 char ch = line.charAt(i);
 
                 if (!isValidCharacter(ch)) {
@@ -122,7 +119,7 @@ public class Lexer {
               if (!tokenValue.isEmpty()) {
                 tokens.add(new Token(tokenValue, lineNumber, startColumn));
               }
-              
+
               i--;
             }
 
@@ -160,9 +157,9 @@ public class Lexer {
 
   private boolean isOperatorOrDelimiter(char ch) {
     return ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '%' ||
-           ch == '=' || ch == '<' || ch == '>' ||
-           ch == '(' || ch == ')' ||
-           ch == ';' || ch == ',' || ch == ':';
+        ch == '=' || ch == '<' || ch == '>' ||
+        ch == '(' || ch == ')' ||
+        ch == ';' || ch == ',' || ch == ':';
   }
 
 }

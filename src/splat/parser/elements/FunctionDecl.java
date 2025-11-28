@@ -7,11 +7,11 @@ public class FunctionDecl extends Declaration {
 
 	private String label;
 	private List<VariableDecl> params;
-	private String retType;
+	private Type retType;
 	private List<VariableDecl> locVarDecls;
 	private List<Statement> stmts;
 	
-	public FunctionDecl(String label, List<VariableDecl> params, String retType,
+	public FunctionDecl(String label, List<VariableDecl> params, Type retType,
 						List<VariableDecl> locVarDecls, List<Statement> stmts, Token tok) {
 		super(tok);
 		this.label = label;
@@ -29,7 +29,7 @@ public class FunctionDecl extends Declaration {
 		return params;
 	}
 	
-	public String getRetType() {
+	public Type getRetType() {
 		return retType;
 	}
 	
